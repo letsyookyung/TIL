@@ -5,131 +5,131 @@ global과 nonlocal 키워드에 대해서 이해하려면 먼저 변수의 범�
 
 이 세 구역의 범위를 각 함수의 입장에서 간단하게 주석으로 나타내보면 다음과 같습니다.
 
-# outer(), inner() 함수 입장에서 전역(global) 범위
-def outer():
-    # outer() 함수 입장에서 지역(local) 범위
-    # inner() 함수 입장에서 비지역(nonlocal) 범위
-    def inner():
-        # inner 함수 입장에서 지역(local) 범위
-        
+- outer(), inner() 함수 입장에서 전역(global) 범위
+    def outer():
+        # outer() 함수 입장에서 지역(local) 범위
+        # inner() 함수 입장에서 비지역(nonlocal) 범위
+        def inner():
+            # inner 함수 입장에서 지역(local) 범위
+
 ---         
-global_var = "전역 변수"
+    global_var = "전역 변수"
 
-def outer():
-    nonlocal_var = "비전역 변수"
-    print(global_var) # 가능
-    print(nonlocal_var) # 가능
-
-    def inner():
-        local_var = "지역 변수"
+    def outer():
+        nonlocal_var = "비전역 변수"
         print(global_var) # 가능
         print(nonlocal_var) # 가능
-        print(local_var) # 가능
 
+        def inner():
+            local_var = "지역 변수"
+            print(global_var) # 가능
+            print(nonlocal_var) # 가능
+            print(local_var) # 가능
+
+        print(local_var) # 불가능 (NameError: name 'local_var' is not defined)
+
+    print(nonlocal_var) # 불가능 (NameError: name 'nonlocal_var' is not defined)
     print(local_var) # 불가능 (NameError: name 'local_var' is not defined)
 
-print(nonlocal_var) # 불가능 (NameError: name 'nonlocal_var' is not defined)
-print(local_var) # 불가능 (NameError: name 'local_var' is not defined)
-
 
 ---- 
 
-def outer():
-    num = 0 
-    
-    def inner():
+    def outer():
+        num = 0 
+
+        def inner():
+            print(num)
+
+        inner()
+
         print(num)
-        
-    inner()
-    
-    print(num)
-    
-출력:
-0
-0
+
+    출력:
+    0
+    0
 
 ---- 
 
-num = 0
+    num = 0
 
-def outer():
-    global num
-    num = 100
+    def outer():
+        global num
+        num = 100
+        print(num)
+
+    outer()
+
     print(num)
 
-outer()
-
-print(num)
-
-출력:
-100
-100
+    출력:
+    100
+    100
 
 ------ 
 
-def outer():
-    num = 0 
+    def outer():
+        num = 0 
 
-    def inner():
+        def inner():
+            print(num)
+
+        inner()
+
         print(num)
 
-    inner()
-
-    print(num)
-
-출력:
-0
-0
+    출력:
+    0
+    0
 
 --------
 
-def outer():
-    num = 0
+    def outer():
+        num = 0
 
-    def inner():
-        num = 100
+        def inner():
+            num = 100
+            print(num)
+
+        inner()
+
         print(num)
 
-    inner()
-
-    print(num)
-
-출력:
-100
-0
+    출력:
+    100
+    0
 
 ---------
 
-def outer():
-    num = 0
+    def outer():
+        num = 0
 
-    def inner():
-        nonlocal num
-        num = 100
+        def inner():
+            nonlocal num
+            num = 100
+            print(num)
+
+        inner()
+
         print(num)
 
-    inner()
-
-    print(num)
-
-출력:
-100
-100
+    출력:
+    100
+    100
 
 ----------
 
-이건??
-num = 0
-def outer():
-    global num
+    이건??
+    num = 0
+    def outer():
+        global num
 
-    def inner():
-        nonlocal num
-        num = 100
+        def inner():
+            nonlocal num
+            num = 100
+            print(num)
+
+        inner()
+
         print(num)
-
-    inner()
-
-    print(num)
 
     
