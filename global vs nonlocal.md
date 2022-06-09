@@ -3,6 +3,7 @@ global과 nonlocal 키워드에 대해서 이해하려면 먼저 변수의 범�
 
 비단 파이썬 뿐만 아니라 대부분의 프로그래밍 언어에서 변수의 범위라는 것은 해당 변수를 어디에서 선언하느냐에 따라서 결정이 됩니다. 아주 단순하게 두 구역으로 나누면 함수 외부를 전역(global/module) 범위라고 하고, 함수 내부를 지역(local/function) 범위라고 합니다. 또한 함수를 중첩했을 때 외부 함수와 내부 함수의 사이에서 생겨나는 비지역(nonlocal/enclosing) 범위라는 것도 있습니다.
 
+### global / nonlocal / local
 이 세 구역의 범위를 각 함수의 입장에서 간단하게 주석으로 나타내보면 다음과 같습니다.
 
 - outer(), inner() 함수 입장에서 전역(global) 범위
@@ -133,3 +134,8 @@ global과 nonlocal 키워드에 대해서 이해하려면 먼저 변수의 범�
         print(num)
 
     
+
+
+
+
+- Reference : https://www.daleseo.com/python-global-nonlocal/
