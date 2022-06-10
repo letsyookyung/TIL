@@ -1,0 +1,150 @@
+Global:
+  use_gpu: True # GPU 설정
+  epoch_num: 500 # 여유롭게 설정
+  log_smooth_window: 20
+  print_batch_step: 1
+  save_model_dir: ./train_output/distance/det/new_5 # 학습 model 저장 위치
+  save_epoch_step: 1 # 1 epoch마다 model을 저장함
+  eval_batch_step: [3000, 1000] # 4,000 iter 후에, 1,000iter 마다 evaluation 실행 - test data
+  cal_metric_during_train: False 
+  # pretrained_model: ./pretrain_models/distance/det/MobileNetV3_large_x0_5_pretrained # pretrain parameter 위치
+  pretrained_model: ./pretrain_models/det/MobileNetV3_large_x1_25_pretrained
+  # checkpoints: ./checkpoints/distance/det/iter_epoch_313
+  # save_inference_dir: ./test_inference/distance/det # 최종 model을 추론 model로 export할 때, 저장되는 위치
+  use_visualdl: False
+  infer_img: 
+  save_res_path:        
+
+Architecture:
+  model_type: det # 학습 model 설정
+  algorithm: DB
+  Transform:
+  Backbone:
+    name: MobileNetV3 # download한 model명이 일치해야 함
+    scale: 1.25 # download한 model명이 일치해야 함
+    model_name: large # download한 model명이 일치해야 함
+    disable_se: True # 추가함
+  Neck:
+    name: DBFPN
+    out_channels: 96 # 256
+  Head:
+    name: DBHead
+    k: 50
+
+Loss:
+  name: DBLoss
+  balance_loss: true
+  main_loss_type: DiceLoss
+  alpha: 5
+  beta: 10
+  ohem_ratio: 3
+
+Optimizer:
+  name: Adam
+  beta1: 0.9
+  beta2: 0.999
+  lr:
+    name: Cosine
+    learning_rate: 0.001
+    warmup_epoch : 2
+  regularizer:
+    name: 'L2'
+    factor: 0.00001 #0
+
+PostProcess:
+  name: DBPostProcess
+  thresh: 0.3
+  box_thresh: 0.6
+  max_candidates: 1000
+  unclip_ratio: 1.5
+
+Metric:
+  name: DetMetric
+  main_indicator: hmean
+
+Train:
+  dataset:
+    name: SimpleDataSet
+    data_dir: ./train_data/distance/det # 학습 image들은 ./train_data/distance/det/train 내에 존재함
+    label_file_list:
+      - ./train_data/distance/det/det_gt_train.txt # 위치 지정 필수
+    ratio_list: [1.0]
+    duplication: 10
+    transforms:
+      - DecodeImage: # load image
+          img_mode: BGR
+          channel_first: False
+      - DetLabelEncode: # Class handling label
+      - IaaAugment:
+          augmenter_args:
+                      # - { 'type': Fliplr, 'args': { 'p': 0.5 } }
+            - { 'type': Resize, 'args': { 'size': {"height": 1088, "width": 1088} } } # multiple of 32 / 640-704
+            - { 'type': Resize, 'args': { 'size':  [0.9, 1] } }
+            # - { 'type': Affine, 'args': { 'rotate': [-5, 5] } }
+            - { 'type': PadToFixedSize, 'args': { 'width': 1216, 'height': 1216, 'position': 'center' } } #"pad_mode": 'reflect'
+            - { 'type': PerspectiveTransform, 'args': { 'scale' : [0, 0.05] } } 
+            - { 'type': Affine, 'args': { 'rotate': [-5, 5] } }
+            # - { 'type': Affine, 'args': { 'shear': [-8, 8] } }
+            # - { 'type': Affine, 'args': { 'translate_percent': {'x': [-0.01, 0.01], 'y': [-0.01, 0.01]} } }
+            - { 'type': GaussianBlur, 'args': { 'sigma': [0.0, 2.0] } }
+            - { 'type': GammaContrast, 'args': { 'gamma': [0.5, 2.0] } }
+            # - { 'type': pillike 'args' : {EnhanceContrast : True} }
+            # - { 'type': PadToFixedSize, 'args': { 'width': 1280, 'height': 1280, 'position': 'center', "pad_mode": 'reflect'} }
+            # - { 'type': Fliplr, 'args': { 'p': 0.5 } }
+            # - { 'type': Resize, 'args': { 'size': {"height": 1280, "width": 1280} } }
+
+
+            # - { 'type': Fliplr, 'args': { 'p': 0.5 } }
+            # - { 'type': Affine, 'args': { 'rotate': [-10, 10] } }
+            # - { 'type': Resize, 'args': { 'size': [0.5, 1] } }
+      - EastRandomCropData:
+          size: [480,480] # 학습 시, Crop data 크기 설정, 클 수록 memory 할당량 커짐 # [640,640]
+          max_tries: 50
+          keep_ratio: true
+      - MakeBorderMap:
+          shrink_ratio: 0.4
+          thresh_min: 0.3
+          thresh_max: 0.7
+      - MakeShrinkMap:
+          shrink_ratio: 0.4
+          min_text_size: 8
+      - NormalizeImage:
+          scale: 1./255.
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+          order: 'hwc'
+      - ToCHWImage:
+      - KeepKeys:
+          keep_keys: ['image', 'threshold_map', 'threshold_mask', 'shrink_map', 'shrink_mask'] # the order of the dataloader list
+  loader:
+    shuffle: True
+    drop_last: False
+    batch_size_per_card: 32 # train 실행 후, rank[0] ERROR 발생 시, memory가 부족 현상, batch_size_per_card: 16를 batch_size_per_card: 8로 수정함
+    num_workers: 4
+
+Eval:
+  dataset:
+    name: SimpleDataSet
+    data_dir: ./train_data/distance/det # 실제 image 위치는 ./train_data/distance/det/test 내에 존재함
+    label_file_list:
+      - ./train_data/distance/det/det_gt_test.txt # 위치 지정 필수
+    transforms:
+      - DecodeImage: # load image
+          img_mode: BGR
+          channel_first: False
+      - DetLabelEncode: # Class handling label
+      - DetResizeForTest:
+#           image_shape: [736, 1280]
+      - NormalizeImage:
+          scale: 1./255.
+          mean: [0.485, 0.456, 0.406]
+          std: [0.229, 0.224, 0.225]
+          order: 'hwc'
+      - ToCHWImage:
+      - KeepKeys:
+          keep_keys: ['image', 'shape', 'polys', 'ignore_tags']
+  loader:
+    shuffle: False
+    drop_last: False
+    batch_size_per_card: 1 # must be 1
+    num_workers: 2
